@@ -1,0 +1,3 @@
+[submodule "lib/simple-websocket-server"]
+	path = lib/simple-websocket-server
+	url = https://gitlab.com/eidheim/Simple-WebSocket-Server.git
