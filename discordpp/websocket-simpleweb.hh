@@ -54,9 +54,9 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
              std::make_shared<std::string>("/gateway/bot"), nullptr, nullptr,
              std::make_shared<const handleRead>([this](const bool error,
                                                        const json &gateway) {
-                 if (error){
+                 if (error) {
                      log::log(log::info, [](std::ostream *log) {
-                       *log << " Failed." << std::endl;
+                         *log << " Failed." << std::endl;
                      });
                      return;
                  }
@@ -67,8 +67,11 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
 
                  connecting_ = false;
                  log::log(log::trace, [this, gateway](std::ostream *log) {
-                     *log << gateway.dump(2) << std::endl;
-                     *log << gateway["url"].get<std::string>().substr(6)
+                     *log << "Gateway: " << gateway.dump(2) << std::endl;
+                 });
+                 log::log(log::info, [this, gateway](std::ostream *log) {
+                     *log << "WebSocket Address: "
+                          << gateway["url"].get<std::string>().substr(6)
                           << ":443/?v=" << std::to_string(apiVersion)
                           << "&encoding=json" << std::endl;
                  });
@@ -102,17 +105,25 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                              *log << " Done." << std::endl;
                          });
                          connection_ = connection;
+                         log::log(
+                             log::info, [this, connection](std::ostream *log) {
+                                 *log << "WebSocket IP: "
+                                      << connection->remote_endpoint().address()
+                                      << std::endl;
+                             });
                      };
 
-                 ws_->on_close = [](const std::shared_ptr<WsClient::Connection>
-                                        & /*connection*/,
-                                    int status,
-                                    const std::string & /*reason*/) {
-                     log::log(log::trace, [status](std::ostream *log) {
+                 ws_->on_close = [this](
+                                     const std::shared_ptr<WsClient::Connection>
+                                         & /*connection*/,
+                                     int status,
+                                     const std::string & /*reason*/) {
+                     log::log(log::error, [status](std::ostream *log) {
                          *log << "Sending: "
                               << "Client: Closed connection with status code "
                               << status << std::endl;
                      });
+                     reconnect("The stream closed");
                  };
 
                  // See
