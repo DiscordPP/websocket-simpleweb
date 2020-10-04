@@ -66,7 +66,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                  });
 
                  connecting_ = false;
-                 log::log(log::trace, [this, gateway](std::ostream *log) {
+                 log::log(log::trace, [gateway](std::ostream *log) {
                      *log << "Gateway: " << gateway.dump(2) << std::endl;
                  });
                  log::log(log::info, [this, gateway](std::ostream *log) {
@@ -106,7 +106,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                          });
                          connection_ = connection;
                          log::log(
-                             log::info, [this, connection](std::ostream *log) {
+                             log::info, [connection](std::ostream *log) {
                                  *log << "WebSocket IP: "
                                       << connection->remote_endpoint().address()
                                       << std::endl;
