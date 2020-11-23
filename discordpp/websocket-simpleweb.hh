@@ -50,102 +50,103 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
         log::log(log::info, [](std::ostream *log) {
             *log << "Fetching gateway..." << std::endl;
         });
-        call(std::make_shared<std::string>("GET"),
-             std::make_shared<std::string>("/gateway/bot"), nullptr, nullptr,
-             std::make_shared<const handleRead>([this](const bool error,
-                                                       const json &gateway) {
-                 if (error) {
-                     log::log(log::info, [](std::ostream *log) {
-                         *log << " Failed." << std::endl;
-                     });
-                     return;
-                 }
+        call(std::make_shared<Call>(Call{
+            std::make_shared<std::string>("GET"),
+            std::make_shared<std::string>("/gateway/bot"), nullptr, nullptr,
+            std::make_shared<const handleRead>([this](const bool error,
+                                                      const json &gateway) {
+                if (error) {
+                    log::log(log::info, [](std::ostream *log) {
+                        *log << " Failed." << std::endl;
+                    });
+                    return;
+                }
 
-                 log::log(log::info, [](std::ostream *log) {
-                     *log << " Done." << std::endl;
-                 });
+                log::log(log::info, [](std::ostream *log) {
+                    *log << " Done." << std::endl;
+                });
 
-                 connecting_ = false;
+                connecting_ = false;
                  log::log(log::trace, [gateway](std::ostream *log) {
-                     *log << "Gateway: " << gateway.dump(2) << std::endl;
-                 });
-                 log::log(log::info, [this, gateway](std::ostream *log) {
-                     *log << "WebSocket Address: "
-                          << gateway["url"].get<std::string>().substr(6)
-                          << ":443/?v=" << std::to_string(apiVersion)
-                          << "&encoding=json" << std::endl;
-                 });
+                    *log << "Gateway: " << gateway.dump(2) << std::endl;
+                });
+                log::log(log::info, [this, gateway](std::ostream *log) {
+                    *log << "WebSocket Address: "
+                         << gateway["url"].get<std::string>().substr(6)
+                         << ":443/?v=" << std::to_string(apiVersion)
+                         << "&encoding=json" << std::endl;
+                });
 
-                 ws_ = std::make_unique<WsClient>(
-                     gateway["url"].get<std::string>().substr(6) +
-                         ":443/"
-                         "?v=" +
-                         std::to_string(apiVersion) + "&encoding=json",
-                     false);
+                ws_ = std::make_unique<WsClient>(
+                    gateway["url"].get<std::string>().substr(6) +
+                        ":443/"
+                        "?v=" +
+                        std::to_string(apiVersion) + "&encoding=json",
+                    false);
 
-                 ws_->io_service = aioc;
+                ws_->io_service = aioc;
 
-                 ws_->on_message =
-                     [this](std::shared_ptr<WsClient::Connection> connection,
-                            std::shared_ptr<WsClient::InMessage> in_message) {
-                         json payload = json::parse(in_message->string());
+                ws_->on_message =
+                    [this](std::shared_ptr<WsClient::Connection> connection,
+                           std::shared_ptr<WsClient::InMessage> in_message) {
+                        json payload = json::parse(in_message->string());
 
-                         log::log(log::trace, [payload](std::ostream *log) {
-                             *log << "Message received: \"" << payload.dump(4)
-                                  << "\"" << std::endl;
-                         });
+                        log::log(log::trace, [payload](std::ostream *log) {
+                            *log << "Message received: \"" << payload.dump(4)
+                                 << "\"" << std::endl;
+                        });
 
-                         receivePayload(payload);
-                     };
+                        receivePayload(payload);
+                    };
 
-                 ws_->on_open =
-                     [this](std::shared_ptr<WsClient::Connection> connection) {
-                         connected_ = true;
-                         log::log(log::info, [](std::ostream *log) {
-                             *log << " Done." << std::endl;
-                         });
-                         connection_ = connection;
-                         log::log(
+                ws_->on_open =
+                    [this](std::shared_ptr<WsClient::Connection> connection) {
+                        connected_ = true;
+                        log::log(log::info, [](std::ostream *log) {
+                            *log << " Done." << std::endl;
+                        });
+                        connection_ = connection;
+                        log::log(
                              log::info, [connection](std::ostream *log) {
-                                 *log << "WebSocket IP: "
-                                      << connection->remote_endpoint().address()
+                                *log << "WebSocket IP: "
+                                     << connection->remote_endpoint().address()
+                                     << std::endl;
+                            });
+                    };
+
+                ws_->on_close =
+                    [this](const std::shared_ptr<WsClient::Connection>
+                               & /*connection*/,
+                           int status, const std::string & /*reason*/) {
+                        log::log(log::error, [status](std::ostream *log) {
+                            *log
+                                << "Sending: "
+                                << "Client: Closed connection with status code "
+                                << status << std::endl;
+                        });
+                        reconnect("The stream closed");
+                    };
+
+                // See
+                // http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html,
+                // Error Codes for error code meanings
+                ws_->on_error =
+                    [this](const std::shared_ptr<WsClient::Connection>
+                               & /*connection*/,
+                           const SimpleWeb::error_code &ec) {
+                        if (connected_) {
+                            std::cout << "WebSocket Error: " << ec
+                                      << ", error message: " << ec.message()
                                       << std::endl;
-                             });
-                     };
+                            connected_ = false;
+                            connect();
+                        }
+                    };
 
-                 ws_->on_close = [this](
-                                     const std::shared_ptr<WsClient::Connection>
-                                         & /*connection*/,
-                                     int status,
-                                     const std::string & /*reason*/) {
-                     log::log(log::error, [status](std::ostream *log) {
-                         *log << "Sending: "
-                              << "Client: Closed connection with status code "
-                              << status << std::endl;
-                     });
-                     reconnect("The stream closed");
-                 };
-
-                 // See
-                 // http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html,
-                 // Error Codes for error code meanings
-                 ws_->on_error =
-                     [this](const std::shared_ptr<WsClient::Connection>
-                                & /*connection*/,
-                            const SimpleWeb::error_code &ec) {
-                         if (connected_) {
-                             std::cout << "WebSocket Error: " << ec
-                                       << ", error message: " << ec.message()
-                                       << std::endl;
-                             connected_ = false;
-                             connect();
-                         }
-                     };
-
-                 log::log(log::info,
-                          [](std::ostream *log) { *log << "Connecting..."; });
-                 ws_->start();
-             }));
+                log::log(log::info,
+                         [](std::ostream *log) { *log << "Connecting..."; });
+                ws_->start();
+            })}));
     }
 
     virtual void disconnect() override {
