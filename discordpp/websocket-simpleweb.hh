@@ -72,13 +72,13 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                 });
                 log::log(log::info, [this, gateway](std::ostream *log) {
                     *log << "WebSocket Address: "
-                         << gateway["url"].get<std::string>().substr(6)
+                         << gateway["body"]["url"].get<std::string>().substr(6)
                          << ":443/?v=" << std::to_string(apiVersion)
                          << "&encoding=json" << std::endl;
                 });
 
                 ws_ = std::make_unique<WsClient>(
-                    gateway["url"].get<std::string>().substr(6) +
+                    gateway["body"]["url"].get<std::string>().substr(6) +
                         ":443/"
                         "?v=" +
                         std::to_string(apiVersion) + "&encoding=json",
