@@ -67,7 +67,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                 });
 
                 connecting_ = false;
-                 log::log(log::trace, [gateway](std::ostream *log) {
+                log::log(log::trace, [gateway](std::ostream *log) {
                     *log << "Gateway: " << gateway.dump(2) << std::endl;
                 });
                 log::log(log::info, [this, gateway](std::ostream *log) {
@@ -89,13 +89,18 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                 ws_->on_message =
                     [this](std::shared_ptr<WsClient::Connection> connection,
                            std::shared_ptr<WsClient::InMessage> in_message) {
+                        log::log(log::trace, [in_message](std::ostream *log) {
+                            *log << "Message received: \""
+                                 << in_message->string() << "\"" << std::endl;
+                        });
+
                         json payload = json::parse(in_message->string());
 
                         log::log(log::trace, [payload](std::ostream *log) {
-                            *log << "Message received: \"" << payload.dump(4)
-                                 << "\"" << std::endl;
+                            *log << "Message parsed: " << payload.dump(4)
+                                 << std::endl;
                         });
-
+                        
                         receivePayload(payload);
                     };
 
@@ -106,12 +111,11 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                             *log << " Done." << std::endl;
                         });
                         connection_ = connection;
-                        log::log(
-                             log::info, [connection](std::ostream *log) {
-                                *log << "WebSocket IP: "
-                                     << connection->remote_endpoint().address()
-                                     << std::endl;
-                            });
+                        log::log(log::info, [connection](std::ostream *log) {
+                            *log << "WebSocket IP: "
+                                 << connection->remote_endpoint().address()
+                                 << std::endl;
+                        });
                     };
 
                 ws_->on_close =
