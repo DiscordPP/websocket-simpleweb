@@ -67,7 +67,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                 });
 
                 connecting_ = false;
-                 log::log(log::trace, [gateway](std::ostream *log) {
+                log::log(log::trace, [gateway](std::ostream *log) {
                     *log << "Gateway: " << gateway.dump(2) << std::endl;
                 });
                 log::log(log::info, [this, gateway](std::ostream *log) {
@@ -106,12 +106,11 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                             *log << " Done." << std::endl;
                         });
                         connection_ = connection;
-                        log::log(
-                             log::info, [connection](std::ostream *log) {
-                                *log << "WebSocket IP: "
-                                     << connection->remote_endpoint().address()
-                                     << std::endl;
-                            });
+                        log::log(log::info, [connection](std::ostream *log) {
+                            *log << "WebSocket IP: "
+                                 << connection->remote_endpoint().address()
+                                 << std::endl;
+                        });
                     };
 
                 ws_->on_close =
@@ -142,6 +141,8 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                             connect();
                         }
                     };
+
+                ws_->config.timeout_request = 10;
 
                 log::log(log::info,
                          [](std::ostream *log) { *log << "Connecting..."; });
