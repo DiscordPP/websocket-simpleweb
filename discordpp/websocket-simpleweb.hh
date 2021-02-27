@@ -50,7 +50,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
         log::log(log::info, [](std::ostream *log) {
             *log << "Fetching gateway..." << std::endl;
         });
-        call()->type("GET")->target("/gateway/bot")->onRead([this](const bool error,
+        call()->method("GET")->target("/gateway/bot")->onRead([this](const bool error,
                                                                    const json &gateway) {
           if (error) {
               log::log(log::info, [](std::ostream *log) {
