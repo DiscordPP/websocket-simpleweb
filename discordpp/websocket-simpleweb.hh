@@ -147,8 +147,8 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
     }
 
     virtual void disconnect() override {
-        connected_ = false;
         ws_->stop();
+        BASE::disconnect();
     }
 
   private:
