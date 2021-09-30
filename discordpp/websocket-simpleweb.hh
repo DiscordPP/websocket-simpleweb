@@ -19,7 +19,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
   public:
     virtual void
     initBot(unsigned int apiVersionIn, const std::string &tokenIn,
-            std::shared_ptr<boost::asio::io_context> aiocIn) override {
+            std::shared_ptr<asio::io_context> aiocIn) override {
         BASE::initBot(apiVersionIn, tokenIn, aiocIn);
     }
 
