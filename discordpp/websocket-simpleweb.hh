@@ -32,7 +32,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
             *log << "Sending: " << out.dump(4) << '\n';
         });
 
-        connection_->send(out.dump());
+        connection_->send(buildPayload(out), nullptr, 130);
         if (callback != nullptr) {
             (*callback)();
         }
@@ -58,11 +58,11 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
               });
               return;
           }
-  
+
           log::log(log::info, [](std::ostream *log) {
             *log << " Done." << std::endl;
           });
-  
+
           connecting_ = false;
           log::log(log::trace, [gateway](std::ostream *log) {
             *log << "Gateway: " << gateway.dump(2) << std::endl;
@@ -71,31 +71,31 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
             *log << "WebSocket Address: "
                  << gateway["body"]["url"].get<std::string>().substr(6)
                  << ":443/?v=" << std::to_string(apiVersion)
-                 << "&encoding=json" << std::endl;
+                 << "&encoding=" << encoding_ << std::endl;
           });
-  
+
           ws_ = std::make_unique<WsClient>(
               gateway["body"]["url"].get<std::string>().substr(6) +
               ":443/"
               "?v=" +
-              std::to_string(apiVersion) + "&encoding=json",
+              std::to_string(apiVersion) + "&encoding=" + encoding_,
               false);
-  
+
           ws_->io_service = aioc;
-  
+
           ws_->on_message =
               [this](std::shared_ptr<WsClient::Connection> connection,
                      std::shared_ptr<WsClient::InMessage> in_message) {
-                json payload = json::parse(in_message->string());
-        
+                json payload = parsePayload(in_message->string());
+
                 log::log(log::trace, [payload](std::ostream *log) {
                   *log << "Message received: \"" << payload.dump(4)
                        << "\"" << std::endl;
                 });
-        
+
                 receivePayload(payload);
               };
-  
+
           ws_->on_open =
               [this](std::shared_ptr<WsClient::Connection> connection) {
                 connected_ = true;
@@ -110,7 +110,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                            << std::endl;
                     });
               };
-  
+
           ws_->on_close =
               [this](const std::shared_ptr<WsClient::Connection>
                      & /*connection*/,
@@ -123,7 +123,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                 });
                 reconnect("The stream closed");
               };
-  
+
           // See
           // http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html,
           // Error Codes for error code meanings
@@ -139,7 +139,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
                     connect();
                 }
               };
-  
+
           log::log(log::info,
               [](std::ostream *log) { *log << "Connecting..."; });
           ws_->start();
