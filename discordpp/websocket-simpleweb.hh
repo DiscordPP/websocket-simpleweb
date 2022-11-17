@@ -46,6 +46,7 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
     }
 
     virtual void connect() override {
+        reconnecting_ = false;
         connecting_ = true;
         log::log(log::info, [](std::ostream *log) {
             *log << "Fetching gateway..." << std::endl;
@@ -149,6 +150,8 @@ class WebsocketSimpleWeb : public BASE, virtual BotStruct {
     virtual void disconnect() override {
         ws_->stop();
         BASE::disconnect();
+        if(reconnecting_)
+          connect();
     }
 
   private:
